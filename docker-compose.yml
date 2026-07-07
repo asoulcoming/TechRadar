@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+      - ../MediaCrawler:/MediaCrawler
+    environment:
+      - DEBUG=true
+      - DATABASE_URL=sqlite+aiosqlite:///app/data/agent.db
+      - COLLECT_INTERVAL_HOURS=6
+      - FEISHU_WEBHOOK_URL=
+      - FEISHU_SECRET=
+      - MEDIACRAWLER_PATH=/MediaCrawler
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web/src:/app/src
+    environment:
+      - VITE_API_BASE=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
