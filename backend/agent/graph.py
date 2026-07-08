@@ -177,28 +177,40 @@ def _make_generate_response():
                 topic = result["topic"]
                 plat_data = result.get("platforms", {})
                 reply_parts.append(f"## 🔍 {topic} 热度分析\n\n")
+                chart_series = []
+                chart_xaxis = []
+
                 for plat, data in plat_data.items():
                     if "error" in data:
                         reply_parts.append(f"- **{plat}**: 数据暂不可用\n")
                     else:
+                        trend_label = data.get("trend", "平稳")
+                        emoji = "📈" if "上升" in trend_label else ("📉" if "下降" in trend_label else "➡️")
                         reply_parts.append(
-                            f"- **{plat}**: {data.get('trend', 'N/A')} "
-                            f"(变化: {data.get('change_percent', 0)}%, "
-                            f"数据点: {data.get('data_points', 0)})\n"
+                            f"- {emoji} **{plat}**: {trend_label} "
+                            f"(变化: {data.get('change_percent', 0):+.1f}%)\n"
                         )
+                        # Collect series data for chart
+                        if data.get("dates"):
+                            if not chart_xaxis:
+                                chart_xaxis = data["dates"]
+                            chart_series.append({
+                                "name": plat,
+                                "data": data.get("scores", []),
+                            })
 
                 if result.get("top_posts"):
                     reply_parts.append("\n### 热门内容\n")
-                    for post in result["top_posts"]:
+                    for post in result["top_posts"][:5]:
                         reply_parts.append(f"- [{post['platform']}] {post['title']}\n")
                         sources.append(post)
 
                 chart_data = {
                     "type": "line",
                     "title": f"{topic} 热度趋势",
-                    "xAxis": [],
-                    "series": [],
-                }
+                    "xAxis": chart_xaxis,
+                    "series": chart_series,
+                } if chart_xaxis else None
 
             elif "topics" in result:
                 topics = result.get("topics", [])

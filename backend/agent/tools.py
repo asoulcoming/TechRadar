@@ -51,6 +51,8 @@ async def search_topic_hotness(
                 "trend": trend["trend"],
                 "change_percent": trend["change_percent"],
                 "data_points": len(trend["data"]),
+                "dates": [d["date"] for d in trend["data"]],
+                "scores": [d["score"] for d in trend["data"]],
             }
             if not result["top_posts"]:
                 posts = await post_repo.get_top_posts(topic, plat, limit=3)
@@ -112,7 +114,7 @@ async def get_top_topics(
         return {"error": "Repository not available", "platform": platform}
 
     try:
-        topics = await hotness_repo.get_top_topics(days=1, limit=limit)
+        topics = await hotness_repo.get_top_topics(days=1, limit=limit, platform=platform)
         return {
             "platform": platform,
             "topics": topics,

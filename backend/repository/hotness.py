@@ -69,9 +69,9 @@ class HotnessRepository:
         return list(result.scalars().all())
 
     async def get_top_topics(
-        self, days: int = 1, limit: int = 20
+        self, days: int = 1, limit: int = 20, platform: str | None = None
     ) -> list[dict]:
-        """Get top topics aggregated across recent days."""
+        """Get top topics aggregated across recent days, optionally by platform."""
         cutoff = date.today() - timedelta(days=days)
         stmt = (
             select(
@@ -80,10 +80,10 @@ class HotnessRepository:
                 func.sum(DailyHotness.post_count).label("total_posts"),
             )
             .where(DailyHotness.date >= cutoff)
-            .group_by(DailyHotness.topic)
-            .order_by(desc("avg_score"))
-            .limit(limit)
         )
+        if platform:
+            stmt = stmt.where(DailyHotness.platform == platform)
+        stmt = stmt.group_by(DailyHotness.topic).order_by(desc("avg_score")).limit(limit)
         result = await self.db.execute(stmt)
         return [
             {"topic": row[0], "avg_score": round(row[1], 1), "total_posts": row[2]}

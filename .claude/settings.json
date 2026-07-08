@@ -67,7 +67,8 @@
       "Bash(file:*)",
       "Bash(date:*)",
       "Bash(timeout:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(curl *)"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
@@ -86,7 +87,6 @@
       "Bash(docker system prune:*)",
       "Bash(kill:*)",
       "Bash(> /dev/sda:*)",
-      "Bash(curl *)",
       "Bash(wget *)"
     ]
   }
