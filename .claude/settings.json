@@ -68,7 +68,7 @@
       "Bash(date:*)",
       "Bash(timeout:*)",
       "Bash(tree:*)",
-      "Bash(curl *)"
+      "Bash(/Users/liujiongjun/work/private/TechRadar/backend/.venv/bin/python -c ' *)"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
@@ -87,6 +87,7 @@
       "Bash(docker system prune:*)",
       "Bash(kill:*)",
       "Bash(> /dev/sda:*)",
+      "Bash(curl *)",
       "Bash(wget *)"
     ]
   }
