@@ -3,7 +3,12 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 PROJECT_ROOT = Path(__file__).parent.parent
+
+# Load .env before reading settings
+load_dotenv(PROJECT_ROOT / "backend" / ".env")
 
 
 class Settings:

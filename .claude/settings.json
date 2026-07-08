@@ -85,9 +85,10 @@
       "Bash(docker rm:*)",
       "Bash(docker rmi:*)",
       "Bash(docker system prune:*)",
-      "Bash(kill:*)",
       "Bash(> /dev/sda:*)",
       "Bash(curl *)",
+      "Bash(kill *)",
+      "Bash(sleep *)",
       "Bash(wget *)"
     ]
   }
