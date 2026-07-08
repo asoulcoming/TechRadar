@@ -18,7 +18,12 @@
         <HotTopicCard :topics="hotTopics" />
       </div>
       <div class="card">
-        <h3>📈 热度趋势</h3>
+        <div class="card-header">
+          <h3>📈 热度趋势</h3>
+          <router-link v-if="searchQuery" :to="{ path: '/chat', query: { q: searchQuery } }" class="ask-ai-link">
+            🤖 问 AI
+          </router-link>
+        </div>
         <TrendChart v-if="trendData" :title="trendData.title" :xAxis="trendData.xAxis" :series="trendData.series" />
         <p v-else class="placeholder-text">在搜索框中输入技术主题以查看趋势</p>
       </div>
@@ -52,21 +57,40 @@ const stats = ref([
 const hotTopics = ref<any[]>([])
 const recentPosts = ref<any[]>([])
 const trendData = ref<any>(null)
+const searchQuery = ref('')
 
 async function loadDashboard() {
   try {
     const data = await getDashboard()
     hotTopics.value = data.hot_topics || []
     recentPosts.value = data.recent_posts || []
+    stats.value[1].value = String(data.hot_topics?.length || 0)
     stats.value[2].value = String(data.recent_posts?.length || 0)
+    if (data.active_platforms) {
+      stats.value[0].value = String(data.active_platforms.length)
+    }
   } catch (e) {
     console.error('Failed to load dashboard:', e)
   }
 }
 
 async function handleSearch(query: string) {
-  // Navigate to chat view with query
-  router.push({ path: '/chat', query: { q: query } })
+  searchQuery.value = query
+  try {
+    const data = await getTrends(query, undefined, 30)
+    if (data.data?.length) {
+      trendData.value = {
+        title: `"${query}" 近 ${data.days || 30} 天热度趋势`,
+        xAxis: data.data.map((d: any) => d.date),
+        series: [{
+          name: '热度分',
+          data: data.data.map((d: any) => d.score),
+        }],
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load trends:', e)
+  }
 }
 
 onMounted(loadDashboard)
@@ -115,6 +139,26 @@ onMounted(loadDashboard)
 h3 {
   margin-bottom: 12px;
   font-size: 16px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.ask-ai-link {
+  font-size: 13px;
+  color: var(--primary);
+  padding: 2px 8px;
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.ask-ai-link:hover {
+  background: var(--primary);
+  color: white;
 }
 
 .placeholder-text {
