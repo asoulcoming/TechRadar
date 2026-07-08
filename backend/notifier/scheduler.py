@@ -27,6 +27,7 @@ def setup_scheduler(
     hotness_repo,         # HotnessRepository
     report_repo,          # ReportRepository
     feishu_notifier,      # FeishuNotifier
+    post_repo=None,       # PostRepository (optional, for pipeline)
 ):
     """Register all scheduled tasks.
 
@@ -35,16 +36,28 @@ def setup_scheduler(
         hotness_repo: Repository for hotness snapshots
         report_repo: Repository for daily reports
         feishu_notifier: Feishu bot for push notifications
+        post_repo: Repository for raw posts (needed for pipeline)
     """
 
-    # ── Data Collection (every N hours) ──────────────────────────────
+    # ── Data Collection + Pipeline (every N hours) ───────────────────
     async def collect_job():
-        logger.info("Scheduled collection job started.")
+        from analyzer.pipeline import run_data_pipeline
+
+        logger.info("Scheduled collection + pipeline job started.")
         try:
+            # Step 1: Collect from all platforms → raw_posts
             results = await supervisor.collect_all_keywords()
-            logger.info(f"Scheduled collection complete: {results}")
+            logger.info(f"Collection complete: {results}")
+
+            # Step 2: Run data pipeline → daily_hotness
+            if post_repo:
+                pipe_result = await run_data_pipeline(
+                    post_repo=post_repo,
+                    hotness_repo=hotness_repo,
+                )
+                logger.info(f"Pipeline complete: {pipe_result}")
         except Exception as e:
-            logger.error(f"Scheduled collection failed: {e}")
+            logger.error(f"Scheduled collection/pipeline failed: {e}")
 
     scheduler.add_job(
         collect_job,

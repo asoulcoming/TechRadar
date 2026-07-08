@@ -59,7 +59,10 @@ async def lifespan(app: FastAPI):
                 secret=settings.FEISHU_SECRET,
             )
 
-            setup_scheduler(supervisor, hotness_repo, report_repo, feishu)
+            setup_scheduler(
+                supervisor, hotness_repo, report_repo, feishu,
+                post_repo=post_repo,
+            )
             scheduler.start()
 
         _scheduler_started = True

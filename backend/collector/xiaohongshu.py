@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -14,6 +15,34 @@ logger = logging.getLogger(__name__)
 
 # MediaCrawler uses "xhs" for 小红书
 MEDIACRAWLER_PLATFORM = "xhs"
+
+
+def _safe_int(value) -> int:
+    """Safely convert various formats to int (empty string, '2万', '1.2k', etc.)."""
+    if value is None:
+        return 0
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return 0
+        # Handle Chinese multiplier: "2万" → 20000, "1.5万" → 15000
+        m = re.match(r'^([\d.]+)\s*万$', value)
+        if m:
+            return int(float(m.group(1)) * 10000)
+        # Handle k/m suffixes: "1.2k", "3.5m"
+        m = re.match(r'^([\d.]+)\s*[kK]$', value)
+        if m:
+            return int(float(m.group(1)) * 1000)
+        m = re.match(r'^([\d.]+)\s*[mM]$', value)
+        if m:
+            return int(float(m.group(1)) * 1000000)
+        try:
+            return int(float(value))
+        except (ValueError, TypeError):
+            return 0
+    return 0
 
 
 class XiaohongshuSource(DataSource):
@@ -135,10 +164,10 @@ class XiaohongshuSource(DataSource):
             url=item.get("note_url",
                          f"https://www.xiaohongshu.com/explore/{note_id}"),
             author=(item.get("nickname", item.get("author_name", item.get("user", {}).get("nickname", ""))) or ""),
-            view_count=int(item.get("view_count", 0)),
-            like_count=int(item.get("like_count", item.get("liked_count", 0))),
-            comment_count=int(item.get("comment_count", 0)),
-            share_count=int(item.get("share_count", item.get("collected_count", 0))),
+            view_count=_safe_int(item.get("view_count", 0)),
+            like_count=_safe_int(item.get("like_count", item.get("liked_count", 0))),
+            comment_count=_safe_int(item.get("comment_count", 0)),
+            share_count=_safe_int(item.get("share_count", item.get("collected_count", 0))),
             content_summary=(item.get("desc", "") or "")[:200],
             tags=item.get("tags", item.get("tag_list", [])),
             raw_data=item,

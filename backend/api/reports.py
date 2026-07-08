@@ -11,6 +11,7 @@ from db import get_db
 from models.report import DailyReportOut, ReportListResponse, FeishuConfigRequest
 from repository.reports import ReportRepository
 from repository.hotness import HotnessRepository
+from repository.posts import PostRepository
 from notifier.report_generator import generate_daily_report
 from notifier.feishu import FeishuNotifier
 from config import settings
@@ -53,15 +54,30 @@ async def trigger_report_generation(
     target_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Manually trigger daily report generation for a specific date."""
+    """Manually trigger the full pipeline: import → hotness → report."""
+    from analyzer.pipeline import run_data_pipeline
+
+    post_repo = PostRepository(db)
     hotness_repo = HotnessRepository(db)
     report_repo = ReportRepository(db)
 
     dt = date.fromisoformat(target_date) if target_date else date.today() - timedelta(days=1)
 
+    # Step 1: Run data pipeline (import MediaCrawler data + compute hotness)
+    pipeline_result = await run_data_pipeline(
+        post_repo=post_repo,
+        hotness_repo=hotness_repo,
+        target_date=dt,
+    )
+
+    # Step 2: Generate report from hotness data
     report = await generate_daily_report(hotness_repo, report_repo, dt)
     if report is None:
-        return {"status": "skipped", "message": f"Report for {dt} already exists"}
+        return {
+            "status": "skipped",
+            "message": f"Report for {dt} already exists",
+            "pipeline": pipeline_result,
+        }
 
     # Push to Feishu if configured
     if settings.FEISHU_WEBHOOK_URL:
@@ -69,4 +85,8 @@ async def trigger_report_generation(
         await feishu.send_markdown(title=report["title"], content=report["summary"])
         await feishu.close()
 
-    return {"status": "ok", "report": report}
+    return {
+        "status": "ok",
+        "report": report,
+        "pipeline": pipeline_result,
+    }
