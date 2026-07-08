@@ -16,6 +16,7 @@ class Settings:
     # Collector
     COLLECT_INTERVAL_HOURS: int = int(os.getenv("COLLECT_INTERVAL_HOURS", "6"))
     COLLECT_REQUEST_DELAY_SECONDS: int = int(os.getenv("COLLECT_REQUEST_DELAY_SECONDS", "5"))
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
     MEDIACRAWLER_PATH: str = os.getenv(
         "MEDIACRAWLER_PATH",
         str(PROJECT_ROOT.parent / "MediaCrawler"),

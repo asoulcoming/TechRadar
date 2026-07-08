@@ -90,3 +90,79 @@ async def trigger_report_generation(
         "report": report,
         "pipeline": pipeline_result,
     }
+
+
+# ── Feishu Config endpoints ──────────────────────────────────────────
+
+
+@router.get("/config/feishu")
+async def get_feishu_config(db: AsyncSession = Depends(get_db)):
+    """Get current Feishu bot configuration from database."""
+    from repository.models import FeishuConfig
+    from sqlalchemy import select as sa_select
+    result = await db.execute(sa_select(FeishuConfig).limit(1))
+    config = result.scalar_one_or_none()
+    if config is None:
+        return {
+            "webhook_url": settings.FEISHU_WEBHOOK_URL,
+            "secret": "",
+            "push_daily_report": True,
+            "push_breaking": True,
+            "breaking_threshold": settings.BREAKING_THRESHOLD,
+            "push_time": settings.DAILY_REPORT_TIME,
+            "source": "env",
+        }
+    return {
+        "webhook_url": config.webhook_url,
+        "secret": config.secret,
+        "push_daily_report": config.push_daily_report,
+        "push_breaking": config.push_breaking,
+        "breaking_threshold": config.breaking_threshold,
+        "push_time": config.push_time,
+        "source": "db",
+    }
+
+
+@router.put("/config/feishu")
+async def update_feishu_config(
+    body: FeishuConfigRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update Feishu bot configuration."""
+    from repository.models import FeishuConfig
+    from sqlalchemy import select as sa_select
+    result = await db.execute(sa_select(FeishuConfig).limit(1))
+    config = result.scalar_one_or_none()
+
+    if config:
+        for key, val in body.model_dump().items():
+            setattr(config, key, val)
+    else:
+        config = FeishuConfig(**body.model_dump())
+        db.add(config)
+
+    await db.commit()
+    logger.info("Feishu config updated")
+    return {"status": "ok", "message": "Feishu configuration updated"}
+
+
+@router.post("/config/feishu/test")
+async def test_feishu_push():
+    """Send a test message to Feishu to verify webhook configuration."""
+    if not settings.FEISHU_WEBHOOK_URL:
+        raise HTTPException(
+            status_code=400,
+            detail="Feishu webhook URL not configured. Set FEISHU_WEBHOOK_URL in .env or update via PUT /api/config/feishu",
+        )
+
+    feishu = FeishuNotifier(settings.FEISHU_WEBHOOK_URL, settings.FEISHU_SECRET)
+    success = await feishu.send_text(
+        "✅ AI 热点洞察 Agent 飞书推送测试成功！\n\n如果您看到这条消息，说明 Webhook 配置正确。",
+        at_all=False,
+    )
+    await feishu.close()
+
+    if success:
+        return {"status": "ok", "message": "Test message sent to Feishu"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send test message")

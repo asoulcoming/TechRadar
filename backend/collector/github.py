@@ -16,14 +16,15 @@ GITHUB_TRENDING_API = "https://api.github.com/search/repositories"
 class GitHubSource(DataSource):
     platform = "github"
 
-    def __init__(self):
-        self.client = httpx.AsyncClient(
-            headers={
-                "Accept": "application/vnd.github+json",
-                "User-Agent": "ai-hotspot-agent/1.0",
-            },
-            timeout=30.0,
-        )
+    def __init__(self, token: str = ""):
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "ai-hotspot-agent/1.0",
+        }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        self.client = httpx.AsyncClient(headers=headers, timeout=30.0)
+        self.token = token
 
     async def search(self, keyword: str, limit: int = 50) -> list[RawPost]:
         """Search GitHub repositories by keyword."""

@@ -12,6 +12,7 @@ from collector.bilibili import BilibiliSource
 from collector.xiaohongshu import XiaohongshuSource
 from collector.zhihu import ZhihuSource
 from collector.keywords import get_all_keywords, filter_tech_posts
+from config import settings
 from repository.posts import PostRepository
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ class CollectorSupervisor:
     def __init__(self, post_repo: PostRepository):
         self.post_repo = post_repo
         self.sources: dict[str, DataSource] = {
-            "github": GitHubSource(),
+            "github": GitHubSource(token=getattr(settings, "GITHUB_TOKEN", "")),
             "bilibili": BilibiliSource(),
             "xiaohongshu": XiaohongshuSource(),
             "zhihu": ZhihuSource(),
