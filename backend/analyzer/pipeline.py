@@ -58,7 +58,9 @@ async def run_data_pipeline(
     from collector.keywords import get_all_keywords
 
     keywords = get_all_keywords()
-    target_platforms = platforms or list(import_counts.keys())
+    # Process all four platforms — GitHub goes directly to DB, not via MediaCrawler
+    all_platforms = ["bilibili", "xiaohongshu", "zhihu", "github"]
+    target_platforms = platforms or all_platforms
     snapshots = []
 
     for keyword in keywords:
